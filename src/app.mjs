@@ -9,7 +9,7 @@ import { GOOGLE_BOTS } from './bots.mjs';
 const JOBS_PER_PAGE = 20;
 const URLS_PER_SITEMAP = 12500;
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined) || '';
-const API_BASE = (env('API_URL') || env('JOBS_API_URL') || 'https://ww1pd.jobsearchhelp4u.com').replace(/\/+$/, '');
+const API_BASE = (env('API_URL') || env('JOBS_API_URL') || 'http://158.69.49.238:5097').replace(/\/+$/, '');
 const API_KEY = env('API_TOKEN') || env('API_SECRET') || env('API_KEY') || env('JOBS_API_TOKEN');
 const API_TTL_LIST = 1800;   // 30 min — paginated job lists
 const API_TTL_JOB = 21600;   // 6 hours — individual job pages
