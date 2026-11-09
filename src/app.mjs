@@ -9,8 +9,8 @@ import { GOOGLE_BOTS } from './bots.mjs';
 const JOBS_PER_PAGE = 20;
 const URLS_PER_SITEMAP = 12500;
 const env = (k) => (typeof process !== 'undefined' ? process.env[k] : undefined) || '';
-const API_BASE = (env('API_URL') || env('JOBS_API_URL') || 'https://158api.jobsearchhelp4u.com').replace(/\/+$/, '');
-const API_KEY = env('API_TOKEN') || env('API_SECRET') || env('API_KEY') || env('JOBS_API_TOKEN');
+const getApiBase = () => (env('API_URL') || env('JOBS_API_URL') || 'https://158api.jobsearchhelp4u.com').replace(/\/+$/, '');
+const getApiKey = () => env('API_TOKEN') || env('API_SECRET') || env('API_KEY') || env('JOBS_API_TOKEN');
 const API_TTL_LIST = 1800;   // 30 min — paginated job lists
 const API_TTL_JOB = 21600;   // 6 hours — individual job pages
 const API_TTL_INFO = 3600;   // 1 hour — total_jobs
@@ -29,7 +29,8 @@ const applyUrl = (permalink) => {
 const TTL = { list: 900, field: 1800, job: 21600, sitemap: 3600, robots: 86400, miss: 600 };
 
 // ─── Site Config ────────────────────────────────────────────────────────────
-const siteName = env('BRAND_NAME') || cfg.siteName || 'Remote Jobs';
+const getSiteName = () => env('BRAND_NAME') || cfg.siteName || 'Remote Jobs';
+const siteName = getSiteName();
 const companyName = env('BRAND_NAME') || cfg.companyName || siteName;
 const tagline = cfg.tagline || '';
 const heroTitle = cfg.heroTitle || 'Find Remote Work';
@@ -167,7 +168,8 @@ const MEMO_MAX = 500;
 
 function apiHeaders() {
     const h = { Accept: 'application/json' };
-    if (API_KEY) { h['X-Api-Key'] = API_KEY; h.Authorization = 'Bearer ' + API_KEY; }
+    const k = getApiKey();
+    if (k) { h['X-Api-Key'] = k; h.Authorization = 'Bearer ' + k; }
     return h;
 }
 
@@ -178,7 +180,7 @@ async function apiGet(ctx, path, ttl) {
     let data = null;
     for (const ms of API_TIMEOUTS) {
         try {
-            const r = await fetch(API_BASE + path, { headers: apiHeaders(), signal: AbortSignal.timeout(ms) });
+            const r = await fetch(getApiBase() + path, { headers: apiHeaders(), signal: AbortSignal.timeout(ms) });
             if (r.status === 404) { data = { __notfound: true }; break; }
             if (r.status === 200) {
                 const j = await r.json();
@@ -235,7 +237,7 @@ let sitemapDebug = null;
 const SM_ROW = /"slug":("(?:[^"\\]|\\.)*"|null),"post_date":("(?:[^"\\]|\\.)*"|null)/g;
 
 async function buildSitemapChunk(start, end) {
-    const r = await fetch(API_BASE + '/api/sitemap-jobs', { headers: apiHeaders(), signal: AbortSignal.timeout(SITEMAP_TIMEOUT) });
+    const r = await fetch(getApiBase() + '/api/sitemap-jobs', { headers: apiHeaders(), signal: AbortSignal.timeout(SITEMAP_TIMEOUT) });
     if (r.status !== 200) throw new Error('http ' + r.status);
     const reader = r.body.getReader();
     const dec = new TextDecoder();
@@ -639,7 +641,7 @@ const ROUTES = [
     [/^\/sitemap-listings-(\d+)\.xml$/, (ctx, m) => sitemapView(ctx, +m[1])],
     [/^\/robots\.txt$/, () => robotsView()],
     [/^\/health$/, () => ({ body: 'OK', type: 'text/plain; charset=utf-8', noStore: true })],
-    [/^\/sitemap-debug$/, () => ({ body: JSON.stringify({ lastBuild: sitemapDebug, slicesInMemory: sitemapCache.size, apiBase: API_BASE, tokenSet: API_KEY !== '' }), type: 'application/json; charset=utf-8', noStore: true, headers: { 'X-Robots-Tag': 'noindex' } })],
+    [/^\/sitemap-debug$/, () => ({ body: JSON.stringify({ lastBuild: sitemapDebug, slicesInMemory: sitemapCache.size, apiBase: getApiBase(), tokenSet: getApiKey() !== '' }), type: 'application/json; charset=utf-8', noStore: true, headers: { 'X-Robots-Tag': 'noindex' } })],
 ];
 
 async function dispatch(ctx, url) {
